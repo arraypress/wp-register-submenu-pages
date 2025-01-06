@@ -52,7 +52,7 @@ if ( ! function_exists( __NAMESPACE__ . '\\register_submenu_pages' ) ):
 	 *     ]
 	 * ];
 	 *
-	 * register_submenu_pages('edit.php?post_type=download', $pages);
+	 * register_submenu_pages( 'edit.php?post_type=download', $pages );
 	 * ```
 	 *
 	 * @param string $parent_slug Parent menu slug
