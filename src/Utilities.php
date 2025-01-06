@@ -62,6 +62,6 @@ if ( ! function_exists( __NAMESPACE__ . '\\register_submenu_pages' ) ):
 	 * @since 1.0.0
 	 */
 	function register_submenu_pages( string $parent_slug, array $items = [] ) {
-		return SubMenuPages::create( $parent_slug, $items );
+		return SubMenuPages::register( $parent_slug, $items );
 	}
 endif;

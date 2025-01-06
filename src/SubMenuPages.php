@@ -115,7 +115,7 @@ class SubMenuPages {
 			$this->add_pages( $items );
 		}
 
-		$this->register();
+		$this->initialize_hooks();
 
 		return true;
 	}
@@ -200,7 +200,7 @@ class SubMenuPages {
 	 *
 	 * @since 1.0.0
 	 */
-	private function register(): void {
+	private function initialize_hooks(): void {
 		add_action( 'admin_menu', [ $this, 'register_pages' ] );
 		add_action( 'admin_head', [ $this, 'add_separator_styles' ] );
 	}
@@ -285,7 +285,7 @@ class SubMenuPages {
 	 * @return WP_Error|self Instance on success, WP_Error on failure
 	 * @since 1.0.0
 	 */
-	public static function create( string $parent_slug, array $items = [] ) {
+	public static function register( string $parent_slug, array $items = [] ) {
 		$instance = self::instance();
 		$result   = $instance->init( $parent_slug, $items );
 
