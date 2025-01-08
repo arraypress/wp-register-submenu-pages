@@ -17,6 +17,8 @@ declare( strict_types=1 );
 
 namespace ArrayPress\WP\Register;
 
+defined( 'ABSPATH' ) || exit;
+
 use WP_Error;
 
 class SubMenuPages {

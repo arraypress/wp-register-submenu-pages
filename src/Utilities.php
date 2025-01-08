@@ -11,14 +11,12 @@
 
 declare( strict_types=1 );
 
-namespace ArrayPress\WP\Register;
-
 // Exit if accessed directly
-use WP_Error;
-
 defined( 'ABSPATH' ) || exit;
 
-if ( ! function_exists( __NAMESPACE__ . '\\submenu_pages' ) ):
+use ArrayPress\WP\Register\SubMenuPages;
+
+if ( ! function_exists( 'submenu_pages' ) ):
 	/**
 	 * Helper function to get SubMenuPages instance
 	 *
@@ -30,7 +28,7 @@ if ( ! function_exists( __NAMESPACE__ . '\\submenu_pages' ) ):
 	}
 endif;
 
-if ( ! function_exists( __NAMESPACE__ . '\\register_submenu_pages' ) ):
+if ( ! function_exists( 'register_submenu_pages' ) ):
 	/**
 	 * Helper function to register multiple submenu pages
 	 *
