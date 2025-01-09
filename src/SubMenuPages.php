@@ -7,10 +7,9 @@
  * and separators, with automatic handling of menu positioning and styling.
  *
  * @package     ArrayPress\WP\Register
- * @since       1.0.0
- * @author      ArrayPress
  * @copyright   Copyright (c) 2024, ArrayPress Limited
  * @license     GPL2+
+ * @version     1.0.0
  */
 
 declare( strict_types=1 );
@@ -24,25 +23,29 @@ use WP_Error;
 class SubMenuPages {
 
 	/**
-	 * Instance of this class.
+	 * Collection of class instances
 	 *
-	 * @since 1.0.0
-	 * @var self|null
+	 * @var self[] Array of SubMenuPages instances
 	 */
-	private static ?self $instance = null;
+	private static array $instances = [];
+
+	/**
+	 * Plugin prefix for this instance
+	 *
+	 * @var string
+	 */
+	private string $prefix = '';
 
 	/**
 	 * Parent menu slug.
 	 *
-	 * @since 1.0.0
 	 * @var string
 	 */
-	private string $parent_slug;
+	private string $parent_slug = '';
 
 	/**
 	 * Registered menu items.
 	 *
-	 * @since 1.0.0
 	 * @var array Array of menu item configurations.
 	 */
 	private array $items = [];
@@ -50,10 +53,16 @@ class SubMenuPages {
 	/**
 	 * Menu slugs that should have separators.
 	 *
-	 * @since 1.0.0
 	 * @var array Array of menu slugs after which to add separators.
 	 */
 	private array $separators = [];
+
+	/**
+	 * Debug mode status
+	 *
+	 * @var bool
+	 */
+	private bool $debug = false;
 
 	/**
 	 * Core WordPress menu slugs and their base identifiers.
@@ -61,7 +70,6 @@ class SubMenuPages {
 	 * Maps WordPress core menu slugs to their base identifier strings used in
 	 * CSS selectors and menu construction.
 	 *
-	 * @since 1.0.0
 	 * @var array<string, string>
 	 */
 	protected const CORE_MENU_SLUGS = [
@@ -78,39 +86,47 @@ class SubMenuPages {
 	/**
 	 * Get instance of this class.
 	 *
+	 * @param string $prefix      Unique prefix for the plugin
+	 * @param string $parent_slug Parent menu slug
+	 *
 	 * @return self Instance of this class.
-	 * @since 1.0.0
 	 */
-	public static function instance(): self {
-		if ( null === self::$instance ) {
-			self::$instance = new self();
+	public static function instance( string $prefix, string $parent_slug ): self {
+		$key = $prefix . '|' . $parent_slug;
+
+		if ( ! isset( self::$instances[ $key ] ) ) {
+			self::$instances[ $key ] = new self();
 		}
 
-		return self::$instance;
+		return self::$instances[ $key ];
 	}
 
 	/**
 	 * Constructor.
-	 *
-	 * @since 1.0.0
 	 */
 	private function __construct() {
+		$this->debug = defined( 'WP_DEBUG' ) && WP_DEBUG;
 	}
 
 	/**
 	 * Initialize submenu pages.
 	 *
+	 * @param string $prefix      Unique prefix for the plugin
 	 * @param string $parent_slug Parent menu slug
 	 * @param array  $items       Optional array of menu items
 	 *
 	 * @return WP_Error|true
-	 * @since 1.0.0
 	 */
-	public function init( string $parent_slug, array $items = [] ) {
+	public function init( string $prefix, string $parent_slug, array $items = [] ) {
 		if ( empty( $parent_slug ) ) {
 			return new WP_Error( 'invalid_parent_slug', __( 'Parent slug cannot be empty.', 'arraypress' ) );
 		}
 
+		if ( empty( $prefix ) ) {
+			return new WP_Error( 'invalid_prefix', __( 'Plugin prefix cannot be empty.', 'arraypress' ) );
+		}
+
+		$this->prefix      = $prefix;
 		$this->parent_slug = $parent_slug;
 
 		if ( ! empty( $items ) ) {
@@ -118,6 +134,8 @@ class SubMenuPages {
 		}
 
 		$this->initialize_hooks();
+
+		$this->log( sprintf( 'Initialized submenu pages for parent: %s with prefix: %s', $parent_slug, $prefix ) );
 
 		return true;
 	}
@@ -128,7 +146,6 @@ class SubMenuPages {
 	 * @param array $items Submenu page configurations
 	 *
 	 * @return self
-	 * @since 1.0.0
 	 */
 	public function add_pages( array $items ): self {
 		foreach ( $items as $item ) {
@@ -138,6 +155,8 @@ class SubMenuPages {
 			}
 			$this->add_page( $item );
 		}
+
+		$this->log( sprintf( 'Added %d pages to %s', count( $items ), $this->parent_slug ) );
 
 		return $this;
 	}
@@ -156,8 +175,8 @@ class SubMenuPages {
 	 * @type bool     $add_separator Add separator after item
 	 * @type int      $position      Menu order position
 	 *                               }
+	 *
 	 * @return self
-	 * @since 1.0.0
 	 */
 	public function add_page( array $args ): self {
 		$defaults = [
@@ -170,12 +189,20 @@ class SubMenuPages {
 			'position'      => null,
 		];
 
-		$args          = wp_parse_args( $args, $defaults );
+		$args = wp_parse_args( $args, $defaults );
+
+		// Ensure menu slug is unique per plugin
+		if ( ! empty( $args['menu_slug'] ) ) {
+			$args['menu_slug'] = $this->prefix . '-' . $args['menu_slug'];
+		}
+
 		$this->items[] = $args;
 
 		if ( $args['add_separator'] ) {
 			$this->separators[] = $args['menu_slug'];
 		}
+
+		$this->log( sprintf( 'Added page: %s', $args['menu_slug'] ) );
 
 		return $this;
 	}
@@ -184,13 +211,13 @@ class SubMenuPages {
 	 * Add separator after last item.
 	 *
 	 * @return self
-	 * @since 1.0.0
 	 */
 	public function add_separator(): self {
 		if ( ! empty( $this->items ) ) {
 			$lastItem = end( $this->items );
 			if ( isset( $lastItem['menu_slug'] ) ) {
 				$this->separators[] = $lastItem['menu_slug'];
+				$this->log( sprintf( 'Added separator after: %s', $lastItem['menu_slug'] ) );
 			}
 		}
 
@@ -199,18 +226,6 @@ class SubMenuPages {
 
 	/**
 	 * Register all submenu pages.
-	 *
-	 * @since 1.0.0
-	 */
-	private function initialize_hooks(): void {
-		add_action( 'admin_menu', [ $this, 'register_pages' ] );
-		add_action( 'admin_head', [ $this, 'add_separator_styles' ] );
-	}
-
-	/**
-	 * Register pages with WordPress.
-	 *
-	 * @since 1.0.0
 	 */
 	public function register_pages(): void {
 		foreach ( $this->items as $item ) {
@@ -224,12 +239,12 @@ class SubMenuPages {
 				$item['position'] ?? null
 			);
 		}
+
+		$this->log( sprintf( 'Registered %d pages with WordPress', count( $this->items ) ) );
 	}
 
 	/**
 	 * Add separator styles.
-	 *
-	 * @since 1.0.0
 	 */
 	public function add_separator_styles(): void {
 		if ( empty( $this->separators ) ) {
@@ -265,10 +280,17 @@ class SubMenuPages {
 	}
 
 	/**
+	 * Register hooks for menu pages.
+	 */
+	private function initialize_hooks(): void {
+		add_action( 'admin_menu', [ $this, 'register_pages' ] );
+		add_action( 'admin_head', [ $this, 'add_separator_styles' ] );
+	}
+
+	/**
 	 * Get menu base identifier.
 	 *
 	 * @return string
-	 * @since 1.0.0
 	 */
 	protected function get_menu_base(): string {
 		if ( strpos( $this->parent_slug, 'edit.php?post_type=' ) === 0 ) {
@@ -281,21 +303,38 @@ class SubMenuPages {
 	/**
 	 * Create and initialize submenu pages.
 	 *
+	 * @param string $prefix      Unique prefix for the plugin
 	 * @param string $parent_slug Parent menu slug
 	 * @param array  $items       Optional array of menu items
 	 *
 	 * @return WP_Error|self Instance on success, WP_Error on failure
-	 * @since 1.0.0
 	 */
-	public static function register( string $parent_slug, array $items = [] ) {
-		$instance = self::instance();
-		$result   = $instance->init( $parent_slug, $items );
+	public static function register( string $prefix, string $parent_slug, array $items = [] ) {
+		$instance = self::instance( $prefix, $parent_slug );
+		$result   = $instance->init( $prefix, $parent_slug, $items );
 
 		if ( is_wp_error( $result ) ) {
 			return $result;
 		}
 
 		return $instance;
+	}
+
+	/**
+	 * Log debug message
+	 *
+	 * @param string $message Message to log
+	 * @param array  $context Optional context
+	 */
+	protected function log( string $message, array $context = [] ): void {
+		if ( $this->debug ) {
+			error_log( sprintf(
+				'[SubMenu Pages] [%s] %s %s',
+				$this->prefix,
+				$message,
+				! empty( $context ) ? json_encode( $context ) : ''
+			) );
+		}
 	}
 
 }

@@ -1,18 +1,14 @@
 <?php
 /**
- * SubMenu Pages Registration Helper
+ * SubMenu Pages Registration Helper Functions
  *
- * @package     ArrayPress/WP/Register/SubMenuPages
+ * @package     ArrayPress\WP\Register
  * @copyright   Copyright (c) 2024, ArrayPress Limited
  * @license     GPL2+
  * @version     1.0.0
- * @author      David Sherlock
  */
 
 declare( strict_types=1 );
-
-// Exit if accessed directly
-defined( 'ABSPATH' ) || exit;
 
 use ArrayPress\WP\Register\SubMenuPages;
 
@@ -20,11 +16,13 @@ if ( ! function_exists( 'submenu_pages' ) ):
 	/**
 	 * Helper function to get SubMenuPages instance
 	 *
+	 * @param string $prefix      Unique prefix for the plugin
+	 * @param string $parent_slug Parent menu slug
+	 *
 	 * @return SubMenuPages
-	 * @since 1.0.0
 	 */
-	function submenu_pages(): SubMenuPages {
-		return SubMenuPages::instance();
+	function submenu_pages( string $prefix, string $parent_slug ): SubMenuPages {
+		return SubMenuPages::instance( $prefix, $parent_slug );
 	}
 endif;
 
@@ -38,28 +36,30 @@ if ( ! function_exists( 'register_submenu_pages' ) ):
 	 *     [
 	 *         'menu_title' => 'Downloads',
 	 *         'page_title' => 'Downloads',
-	 *         'menu_slug'  => 'edit.php?post_type=download',
+	 *         'menu_slug'  => 'downloads', // Will become 'my-plugin-downloads'
 	 *         'callback'   => function() { }
 	 *     ],
 	 *     [
 	 *         'menu_title'    => 'Orders',
 	 *         'page_title'    => 'Orders',
-	 *         'menu_slug'     => 'edd-orders',
+	 *         'menu_slug'     => 'orders', // Will become 'my-plugin-orders'
+	 *         'capability'    => 'manage_options',
 	 *         'callback'      => function() { },
 	 *         'add_separator' => true
 	 *     ]
 	 * ];
 	 *
-	 * register_submenu_pages( 'edit.php?post_type=download', $pages );
+	 * // Register pages with a unique plugin prefix
+	 * register_submenu_pages( 'my-plugin', 'edit.php?post_type=download', $pages );
 	 * ```
 	 *
+	 * @param string $prefix      Unique prefix for the plugin
 	 * @param string $parent_slug Parent menu slug
 	 * @param array  $items       Array of menu items
 	 *
 	 * @return SubMenuPages|WP_Error SubMenuPages instance or WP_Error on failure
-	 * @since 1.0.0
 	 */
-	function register_submenu_pages( string $parent_slug, array $items = [] ) {
-		return SubMenuPages::register( $parent_slug, $items );
+	function register_submenu_pages( string $prefix, string $parent_slug, array $items = [] ) {
+		return SubMenuPages::register( $prefix, $parent_slug, $items );
 	}
 endif;
